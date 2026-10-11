@@ -1,0 +1,1246 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a1c19">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="大富豪">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}html{-webkit-text-size-adjust:100%}body{overscroll-behavior:none}</style>
+<title>大富豪テーブル</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Zen+Old+Mincho:wght@700&display=swap">
+<style>
+/* Layout: a felt card table filling the screen. Opponents sit along the top rail, the field is the felt center, your hand runs along the bottom edge, the play log sits in a side rail (below on phones). */
+:root{
+  --rail:#0a1c19;
+  --felt:#16413a; --felt-hi:#21604f; --felt-lo:#0d2a25;
+  --rev-hi:#7a2634; --rev-mid:#4c1621; --rev-lo:#230a10;
+  --brass:#d9a84e; --brass-ink:#2a1d06;
+  --ivory:#f6f0e2; --ivory-edge:#d6cbb2;
+  --ink:#1c1a17; --red:#b5302a;
+  --text:#e7efeb; --muted:#97b3ab; --line:rgba(231,239,235,.14); --shade:rgba(0,0,0,.24);
+  --good:#9fd8a8; --bad:#ec7b69;
+  --f-display:"Dela Gothic One","Hiragino Sans","Noto Sans JP",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+  --f-card:"Zen Old Mincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--rail);color:var(--text);font-family:var(--f-body);font-size:15px;line-height:1.6;padding-inline:16px;padding-block:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+/* ---------- buttons ---------- */
+.btn{border:0;border-radius:10px;padding:10px 20px;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:transform .1s,filter .15s}
+.btn:active{transform:translateY(1px)}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.primary{background:var(--brass);color:var(--brass-ink)}
+.secondary{background:var(--ivory);color:var(--ink)}
+.ghost{background:transparent;border:1px solid var(--line);color:var(--text)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.big{font-size:18px;padding:14px 40px;border-radius:12px}
+
+/* ---------- cards ---------- */
+.card{--cw:60px;width:var(--cw);height:calc(var(--cw)*1.42);border-radius:calc(var(--cw)*.1);background:var(--ivory);border:1px solid var(--ivory-edge);color:var(--ink);position:relative;font-family:var(--f-card);box-shadow:0 1px 0 rgba(0,0,0,.3),0 6px 14px rgba(0,0,0,.28);flex:none;padding:0;display:block;transition:transform .14s ease,filter .14s ease;user-select:none;-webkit-user-select:none}
+.card.red{color:var(--red)}
+.card .ix{position:absolute;left:calc(var(--cw)*.07);top:calc(var(--cw)*.05);display:flex;flex-direction:column;align-items:center;line-height:1;font-weight:700;font-size:calc(var(--cw)*.3);gap:1px}
+.card .ix b{font-weight:700;letter-spacing:-.04em}
+.card .ix i{font-style:normal;font-size:calc(var(--cw)*.24);font-family:var(--f-body)}
+.card .pip{position:absolute;right:calc(var(--cw)*.1);bottom:calc(var(--cw)*.1);font-size:calc(var(--cw)*.56);line-height:1;font-family:var(--f-body)}
+.card.joker .jk{position:absolute;left:calc(var(--cw)*.09);top:calc(var(--cw)*.07);writing-mode:vertical-rl;font-family:var(--f-body);font-weight:900;font-size:calc(var(--cw)*.16);line-height:1;letter-spacing:.02em}
+.card.joker .star{position:absolute;right:calc(var(--cw)*.08);bottom:calc(var(--cw)*.06);font-size:calc(var(--cw)*.62);line-height:1;color:var(--brass);text-shadow:0 1px 0 var(--brass-ink)}
+.back{display:inline-block;width:14px;height:20px;border-radius:3px;background:repeating-linear-gradient(45deg,var(--brass) 0 2px,var(--felt-lo) 2px 5px);border:1px solid var(--brass);vertical-align:middle}
+.backs{display:inline-flex}
+.backs .back+.back{margin-left:-10px}
+
+/* ---------- title screen ---------- */
+.title-screen{min-height:100%;padding-block:36px 56px}
+.title-inner{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+.hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:32px;align-items:center}
+.hero h1{font-family:var(--f-display);font-weight:400;font-size:clamp(52px,10vw,104px);line-height:1;margin:0;letter-spacing:.06em;color:var(--ivory)}
+.hero p{margin:12px 0 0;color:var(--muted);max-width:34em;text-wrap:pretty}
+.hero-cards{position:relative;width:170px;height:130px}
+.hero-cards .card{--cw:68px;position:absolute;top:10px}
+.hero-cards .card:nth-child(1){left:0;transform:rotate(-14deg)}
+.hero-cards .card:nth-child(2){left:48px;transform:rotate(-2deg) translateY(-8px);z-index:1}
+.hero-cards .card:nth-child(3){left:96px;transform:rotate(11deg)}
+@media (max-width:640px){.hero{grid-template-columns:1fr;gap:16px}.hero-cards{height:110px}}
+.presets{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.presets span{color:var(--muted);font-size:13px;letter-spacing:.08em;margin-right:4px}
+.presets button{border:1px solid var(--line);background:var(--shade);border-radius:999px;padding:6px 16px;cursor:pointer}
+.presets button:hover{border-color:var(--brass)}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr));gap:18px;align-items:start}
+.group{background:var(--felt);border:1px solid var(--line);border-radius:14px;padding:16px 18px 6px;min-width:0}
+.group h2{font-family:var(--f-display);font-weight:400;font-size:17px;margin:0 0 4px;color:var(--brass);letter-spacing:.1em}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px 14px;padding:11px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.group h2+.row{border-top:0}
+.row .lb{min-width:0;flex:1 1 180px}
+.row .lb b{display:block;font-weight:700}
+.row .lb small{color:var(--muted);font-size:12.5px;line-height:1.5;display:block;text-wrap:pretty}
+.row.off{opacity:.4}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--felt-lo);border-radius:9px;padding:3px;gap:2px;flex:none}
+.seg button{border:0;background:transparent;padding:5px 11px;border-radius:7px;cursor:pointer;font-size:13.5px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--brass);color:var(--brass-ink);font-weight:700}
+.sw{width:48px;height:28px;border-radius:14px;background:var(--felt-lo);border:1px solid var(--line);position:relative;flex:none;cursor:pointer;padding:0}
+.sw::after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform .15s,background .15s}
+.sw[aria-checked="true"]{background:var(--brass);border-color:var(--brass)}
+.sw[aria-checked="true"]::after{transform:translateX(20px);background:var(--brass-ink)}
+.start-row{display:flex;justify-content:center;padding-top:6px}
+
+/* ---------- game (phone-first) ---------- */
+:root{
+  --av1:#b4664a; --av2:#5f8a5a; --av3:#5a76a0; --av4:#8a5f93; --av5:#a08a45;
+  --ease:cubic-bezier(.2,.75,.25,1);
+}
+.game{height:100%;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);padding-block:8px;max-width:1180px;margin:0 auto;gap:0 16px}
+@media (min-width:1000px){.game{grid-template-columns:minmax(0,1fr) 280px}}
+.bar{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding-bottom:8px;min-width:0}
+.brand{font-family:var(--f-display);font-size:20px;color:var(--ivory);letter-spacing:.08em}
+.round{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;margin-right:auto;white-space:nowrap}
+.bar .btn{padding:7px 13px;font-size:13px}
+@media (min-width:1000px){#btn-log{display:none}}
+
+.table{grid-column:1;grid-row:2;position:relative;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;border-radius:22px;padding:12px 10px calc(10px + env(safe-area-inset-bottom,0px));min-height:0;overflow:hidden;
+  background:radial-gradient(ellipse 90% 70% at 50% 40%,var(--felt-hi),var(--felt) 58%,var(--felt-lo));
+  box-shadow:inset 0 0 0 5px var(--felt-lo),inset 0 0 0 6px var(--line),inset 0 0 70px rgba(0,0,0,.45)}
+.table::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 50% 40%,var(--rev-hi),var(--rev-mid) 58%,var(--rev-lo));opacity:0;transition:opacity .8s ease;pointer-events:none}
+.table.is-rev::before{opacity:1}
+.table>*{position:relative;z-index:1}
+
+/* seats */
+.seats{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:4px;justify-items:center;padding-top:4px}
+.seat{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;width:100%;max-width:120px;text-align:center}
+.av{position:relative;width:48px;height:48px;border-radius:50%;background:var(--av);display:grid;place-items:center;font-family:var(--f-display);font-size:21px;color:var(--ivory);box-shadow:0 0 0 2px var(--felt-lo),0 5px 12px rgba(0,0,0,.35);transition:filter .3s}
+.seat.turn .av{animation:pulse 1.15s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px var(--felt-lo),0 0 0 4px var(--brass),0 5px 12px rgba(0,0,0,.35)}50%{box-shadow:0 0 0 2px var(--felt-lo),0 0 0 4px var(--brass),0 0 20px 5px rgba(217,168,78,.5)}}
+.seat.done .av{filter:grayscale(.85) brightness(.7)}
+.badge{position:absolute;right:-9px;bottom:-5px;min-width:25px;height:22px;padding:0 6px;border-radius:11px;background:var(--ivory);color:var(--ink);font-weight:900;font-size:12.5px;display:grid;place-items:center;font-variant-numeric:tabular-nums;box-shadow:0 2px 6px rgba(0,0,0,.35);font-family:var(--f-body)}
+.badge.bump{animation:bump .35s var(--ease)}
+@keyframes bump{40%{transform:scale(1.3)}}
+.seat.done .badge{background:var(--brass);color:var(--brass-ink)}
+.seat-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;line-height:1.3}
+.seat-sub{font-size:10.5px;color:var(--muted);display:flex;gap:4px;align-items:center;justify-content:center;white-space:nowrap;line-height:1.3;min-height:15px}
+.seat-sub .ttl{font-size:10px;padding:0 5px}
+.bubble{position:absolute;top:30px;left:50%;transform:translateX(-50%);padding:2px 10px;border-radius:999px;background:var(--ivory);color:var(--ink);font-size:12px;font-weight:700;white-space:nowrap;pointer-events:none;opacity:0;z-index:3;box-shadow:0 3px 8px rgba(0,0,0,.35)}
+.bubble.on{opacity:1;animation:pop .32s var(--ease)}
+.bubble.think{background:var(--brass);color:var(--brass-ink)}
+.bubble.fin{background:var(--felt-lo);color:var(--brass);border:1px solid var(--brass)}
+@keyframes pop{from{opacity:0;transform:translateX(-50%) translateY(6px) scale(.8)}to{opacity:1;transform:translateX(-50%)}}
+.dots i{display:inline-block;animation:dot 1s infinite;font-style:normal}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,60%,100%{transform:none;opacity:.5}30%{transform:translateY(-3px);opacity:1}}
+.ttl{font-size:11px;padding:0 7px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;line-height:1.6}
+.t-top{color:var(--brass)} .t-hi{color:var(--ivory)} .t-mid{color:var(--muted)} .t-lo{color:var(--bad)}
+
+/* field */
+.field-wrap{position:relative;min-height:150px}
+.state{position:absolute;top:30px;left:0;right:0;display:flex;justify-content:center;gap:6px;flex-wrap:wrap;z-index:4;pointer-events:none}
+.chip{font-size:12px;padding:2px 10px;border-radius:999px;border:1px solid var(--line);background:var(--shade);white-space:nowrap;animation:pop2 .3s var(--ease)}
+@keyframes pop2{from{opacity:0;transform:scale(.8)}}
+.chip.rev{background:var(--rev-hi);border-color:var(--bad);color:var(--ivory);font-weight:700}
+.chip.back{border-color:var(--brass);color:var(--brass)}
+.chip.lock{border-color:var(--ivory);color:var(--ivory);font-weight:700}
+.field{--cw:clamp(66px,19vw,100px);position:absolute;inset:0}
+.trick{position:absolute;left:50%;top:52%;display:flex;transition:filter .3s}
+.trick .card{box-shadow:0 2px 0 rgba(0,0,0,.25),0 10px 22px rgba(0,0,0,.35)}
+.trick .card+.card{margin-left:6px}
+.trick.tight .card+.card{margin-left:calc(var(--cw)*-.28)}
+.trick.old{filter:brightness(.62) saturate(.7)}
+.field-who{position:absolute;left:0;right:0;bottom:4px;text-align:center;font-size:12.5px;color:var(--muted);letter-spacing:.05em;z-index:4}
+.field-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-family:var(--f-display);font-size:clamp(18px,5vw,26px);color:rgba(231,239,235,.28);letter-spacing:.12em;pointer-events:none}
+.field-empty small{display:block;font-family:var(--f-body);font-size:13px;letter-spacing:.04em;color:var(--muted);margin-top:4px}
+
+.stamp{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font-family:var(--f-display);font-size:clamp(30px,9vw,74px);line-height:1.15;color:var(--brass);border:5px solid currentColor;border-radius:14px;padding:6px 20px;text-align:center;max-width:92%;pointer-events:none;opacity:0;z-index:8;background:rgba(10,28,25,.6);letter-spacing:.06em}
+.stamp.bad{color:var(--bad)} .stamp.good{color:var(--ivory)}
+.stamp.show{animation:stamp 1.3s var(--ease) forwards}
+@keyframes stamp{0%{opacity:0;transform:translate(-50%,-50%) scale(1.7) rotate(-12deg)}16%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-5deg)}78%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-5deg)}100%{opacity:0;transform:translate(-50%,-50%) scale(.97) rotate(-5deg)}}
+
+/* me */
+.me{display:flex;flex-direction:column;gap:2px}
+.me-info{display:flex;gap:8px;align-items:center;min-width:0}
+.me-info .nm{font-weight:700;font-size:15px}
+.me-info .meta{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.turn-pill{margin-left:auto;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--brass);color:var(--brass-ink);white-space:nowrap;animation:pop2 .3s var(--ease)}
+.turn-pill.pass{background:var(--ivory);color:var(--ink)}
+.prompt{min-height:1.5em;color:var(--ivory);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prompt .warn{color:var(--bad)}
+.prompt .tip{color:var(--muted)}
+.hand{--cw:clamp(66px,19vw,96px);position:relative;height:calc(var(--cw)*1.42 + 48px);touch-action:none;min-width:0}
+.hand .card{position:absolute;left:0;top:32px;transform-origin:50% 115%;transition:transform .3s var(--ease),filter .2s,box-shadow .2s;cursor:pointer;will-change:transform}
+.hand .card.sel{box-shadow:0 0 0 2px var(--brass),0 14px 22px rgba(0,0,0,.4)}
+.hand .card.dim{filter:brightness(.52) saturate(.5)}
+.hand.locked .card{cursor:default}
+.controls{display:grid;grid-template-columns:auto auto minmax(0,1fr) minmax(0,1.3fr);gap:8px;align-items:center}
+.controls .btn{height:46px;padding:0 14px;font-size:15px}
+.controls #btn-confirm{grid-column:3/-1}
+.sort{font-size:13px!important}
+
+/* fly layer */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+#fx .card{position:fixed;margin:0}
+.cback{background:repeating-linear-gradient(45deg,var(--brass) 0 3px,var(--felt-lo) 3px 8px)!important;border:2px solid var(--ivory)!important}
+
+/* log */
+.log-wrap{grid-column:2;grid-row:2;min-height:0;display:flex;flex-direction:column;background:var(--felt-lo);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.log-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 8px 14px;border-bottom:1px solid var(--line)}
+.log-head h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:14px;letter-spacing:.12em;color:var(--brass)}
+.log-head .btn{padding:4px 12px;font-size:12.5px}
+@media (min-width:1000px){.log-head .btn{display:none}}
+.log{list-style:none;margin:0;padding:8px 14px 14px;overflow:auto;flex:1;font-size:13px;line-height:1.55}
+.log li{padding:3px 0;border-bottom:1px dashed rgba(231,239,235,.07)}
+.log .me{color:var(--brass)} .log .muted{color:var(--muted)} .log .fx{color:var(--ivory);font-weight:700}
+.log .good{color:var(--good)} .log .bad{color:var(--bad)} .log .sep{color:var(--muted);text-align:center;border:0;padding-top:8px}
+.log .flow{color:var(--muted);font-style:italic}
+@media (max-width:999px){
+  .log-wrap{position:fixed;left:0;right:0;bottom:0;height:min(60dvh,440px);border-radius:18px 18px 0 0;transform:translateY(105%);transition:transform .32s var(--ease);z-index:45;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -12px 40px rgba(0,0,0,.5)}
+  .log-wrap.open{transform:none}
+}
+@media (min-width:700px){
+  .av{width:56px;height:56px;font-size:24px}
+  .bubble{top:36px}
+  .seat-name{font-size:13px}
+}
+
+/* ---------- modal ---------- */
+.modal{position:fixed;inset:0;background:rgba(4,12,10,.72);display:grid;place-items:center;padding:16px;z-index:70;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0}}
+.sheet{background:var(--felt);border:1px solid var(--line);border-radius:18px;padding:22px;max-width:540px;width:100%;max-height:90dvh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.5);animation:rise .35s var(--ease)}
+@keyframes rise{from{opacity:0;transform:translateY(24px)}}
+.sheet h2{font-family:var(--f-display);font-weight:400;margin:0 0 4px;font-size:24px;color:var(--ivory);letter-spacing:.06em}
+.sheet .sub{color:var(--muted);margin:0 0 16px;font-size:13.5px}
+.res{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.res th{font-size:12px;color:var(--muted);font-weight:500;text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+.res td{padding:9px 6px;border-bottom:1px solid var(--line)}
+.res td.num{text-align:right}
+.res tr.you td{color:var(--brass);font-weight:700}
+.res .place{font-family:var(--f-display);font-size:18px}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:20px}
+.rulechips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 0}
+.rulechips span{font-size:12.5px;padding:3px 10px;border-radius:999px;background:var(--shade);border:1px solid var(--line)}
+.winner{font-family:var(--f-display);font-size:clamp(26px,7vw,40px);color:var(--brass);margin:2px 0 14px;letter-spacing:.04em}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+  .seat.turn .av{animation:none;box-shadow:0 0 0 2px var(--felt-lo),0 0 0 4px var(--brass)}
+  .stamp.show{animation:stampFade 1.3s forwards}
+  @keyframes stampFade{0%,80%{opacity:1;transform:translate(-50%,-50%) rotate(-5deg)}100%{opacity:0;transform:translate(-50%,-50%) rotate(-5deg)}}
+}
+</style>
+</head>
+<body>
+
+
+<div id="title-screen" class="title-screen">
+  <div class="title-inner">
+    <header class="hero">
+      <div class="hero-cards" aria-hidden="true" id="hero-cards"></div>
+      <div>
+        <h1>大富豪</h1>
+        <p>AIを相手に遊ぶ大富豪です。8切りや革命から7渡し・砂嵐まで、地元のローカルルールに合わせて組み替えられます。</p>
+      </div>
+    </header>
+    <div class="presets" id="presets">
+      <span>プリセット</span>
+      <button type="button" data-preset="standard">標準</button>
+      <button type="button" data-preset="simple">シンプル</button>
+      <button type="button" data-preset="full">全部入り</button>
+    </div>
+    <div id="settings" class="settings"></div>
+    <div class="start-row"><button type="button" id="btn-start" class="btn primary big">ゲーム開始</button></div>
+  </div>
+</div>
+
+<div id="game" class="game" hidden>
+  <header class="bar">
+    <div class="brand">大富豪</div>
+    <div id="round" class="round"></div>
+    <button type="button" id="btn-log" class="btn ghost">ログ</button>
+    <button type="button" id="btn-menu" class="btn ghost">ルール・終了</button>
+  </header>
+  <main class="table" id="table">
+    <section id="seats" class="seats" aria-label="相手"></section>
+    <section class="field-wrap" id="field-wrap">
+      <div id="state" class="state"></div>
+      <div id="field" class="field" aria-live="polite"></div>
+      <div id="field-empty" class="field-empty"></div>
+      <div id="field-who" class="field-who"></div>
+      <div id="stamp" class="stamp" aria-hidden="true"></div>
+    </section>
+    <section class="me" id="me">
+      <div id="me-info" class="me-info"></div>
+      <div id="prompt" class="prompt" aria-live="polite"></div>
+      <div id="hand" class="hand" aria-label="あなたの手札"></div>
+      <div id="controls" class="controls">
+        <button type="button" id="btn-sort" class="btn ghost sort">並べ替え</button>
+        <button type="button" id="btn-hint" class="btn ghost">ヒント</button>
+        <button type="button" id="btn-pass" class="btn secondary">パス</button>
+        <button type="button" id="btn-play" class="btn primary">出す</button>
+        <button type="button" id="btn-confirm" class="btn primary" hidden>決定</button>
+      </div>
+    </section>
+  </main>
+  <aside class="log-wrap" id="log-wrap" aria-label="ログ">
+    <div class="log-head"><h3>ログ</h3><button type="button" class="btn ghost" id="btn-log-close">閉じる</button></div>
+    <ol id="log" class="log"></ol>
+  </aside>
+</div>
+<div id="fx" aria-hidden="true"></div>
+<div id="modal" class="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+
+/* ================= cards ================= */
+const SUITS = ['S','H','D','C'];
+const SYM = {S:'♠',H:'♥',D:'♦',C:'♣'};
+const SUIT_ORDER = {S:0,H:1,D:2,C:3,X:4};
+const RL = r => r===16 ? 'JOKER' : ({11:'J',12:'Q',13:'K',14:'A',15:'2'}[r] || String(r));
+const cname = c => c.joker ? 'JOKER' : SYM[c.s] + RL(c.r);
+const val = (r, rev) => r===16 ? 100 : (rev ? 18 - r : r);
+const str01 = (c, rev) => c.joker ? 1 : (val(c.r, rev) - 3) / 12;
+const sleep = ms => new Promise(res => setTimeout(res, ms));
+const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+
+function makeDeck(jokers){
+  const d=[]; let id=0;
+  for (const s of SUITS) for (let r=3;r<=15;r++) d.push({id:id++, s, r, joker:false});
+  for (let j=0;j<jokers;j++) d.push({id:id++, s:'X', r:16, joker:true});
+  return d;
+}
+function sortHand(h, rev, mode){
+  return h.slice().sort((a,b)=> mode==='suit'
+    ? (SUIT_ORDER[a.s]-SUIT_ORDER[b.s]) || (val(a.r,rev)-val(b.r,rev))
+    : (val(a.r,rev)-val(b.r,rev)) || (SUIT_ORDER[a.s]-SUIT_ORDER[b.s]));
+}
+function cardHTML(c, cls='', attrs='', tag='button'){
+  const t = tag==='button' ? 'button type="button"' : tag;
+  if (c.joker) return `<${t} class="card joker ${cls}" ${attrs} aria-label="ジョーカー"><span class="jk">JOKER</span><span class="star">★</span></${tag}>`;
+  const red = c.s==='H'||c.s==='D';
+  return `<${t} class="card ${red?'red':''} ${cls}" ${attrs} aria-label="${cname(c)}"><span class="ix"><b>${RL(c.r)}</b><i>${SYM[c.s]}</i></span><span class="pip">${SYM[c.s]}</span></${tag}>`;
+}
+
+/* ================= settings ================= */
+const DEFAULTS = {
+  players:4, jokers:1, rounds:5, aiLevel:'normal', speed:'normal',
+  stairs:true, stairsMin:3, stairsRev:0, revolution:true,
+  eightCut:true, elevenBack:true, shibari:true, spade3:true,
+  fiveSkip:false, sevenPass:false, tenDiscard:false, nineReverse:false, sandstorm:false,
+  exchange:true, miyakoOchi:true, foulFinish:true, starter:'dia3', passLock:false,
+  autoPass:true, showPlayable:true
+};
+const PRESETS = {
+  standard: {...DEFAULTS},
+  simple: {...DEFAULTS, stairs:false, stairsRev:0, elevenBack:false, shibari:false, spade3:false, miyakoOchi:false, foulFinish:false},
+  full: {...DEFAULTS, jokers:2, stairsRev:5, fiveSkip:true, sevenPass:true, tenDiscard:true, nineReverse:true, sandstorm:true, passLock:false}
+};
+const SPEC = [
+  {group:'基本', items:[
+    {k:'players', label:'人数', desc:'あなた＋AI', type:'seg', opts:[[3,'3人'],[4,'4人'],[5,'5人'],[6,'6人']]},
+    {k:'jokers', label:'ジョーカー', desc:'どのカードの代わりにもなる最強の札', type:'seg', opts:[[0,'なし'],[1,'1枚'],[2,'2枚']]},
+    {k:'rounds', label:'ラウンド数', desc:'合計ポイントで最終順位を決めます', type:'seg', opts:[[1,'1'],[3,'3'],[5,'5'],[10,'10'],[0,'∞']]},
+    {k:'aiLevel', label:'AIの強さ', desc:'つよいAIは出たカードを覚えて、勝ち筋を読みます', type:'seg', opts:[['easy','よわい'],['normal','ふつう'],['hard','つよい']]},
+    {k:'speed', label:'AIの速さ', type:'seg', opts:[['fast','速い'],['normal','普通'],['slow','ゆっくり']]},
+  ]},
+  {group:'出し方と革命', items:[
+    {k:'revolution', label:'革命', desc:'同じ数字を4枚以上出すと、強さが逆転する', type:'tog'},
+    {k:'stairs', label:'階段', desc:'同じスートの連番（例：♠4 ♠5 ♠6）をまとめて出せる', type:'tog'},
+    {k:'stairsMin', label:'階段の最小枚数', type:'seg', opts:[[3,'3枚'],[4,'4枚']], dep:'stairs'},
+    {k:'stairsRev', label:'階段革命', desc:'長い階段でも革命が起きる', type:'seg', opts:[[0,'なし'],[4,'4枚以上'],[5,'5枚以上']], dep:'stairs'},
+  ]},
+  {group:'特殊カード', items:[
+    {k:'eightCut', label:'8切り', desc:'8を出すと場が流れ、出した人がもう一度親になる', type:'tog'},
+    {k:'elevenBack', label:'11バック', desc:'Jを出すと、場が流れるまで強さが逆転（Jを重ねても解除されない）', type:'tog'},
+    {k:'shibari', label:'しばり', desc:'同じスートが2回続くと、流れるまでそのスートしか出せない', type:'tog'},
+    {k:'spade3', label:'スペ3返し', desc:'ジョーカー1枚出しに♠3で勝てる（場が流れる）', type:'tog'},
+    {k:'fiveSkip', label:'5スキップ', desc:'5の枚数分だけ次の人を飛ばす', type:'tog'},
+    {k:'sevenPass', label:'7渡し', desc:'7の枚数まで、次の人に好きなカードを渡せる', type:'tog'},
+    {k:'tenDiscard', label:'10捨て', desc:'10の枚数まで、好きなカードを捨てられる', type:'tog'},
+    {k:'nineReverse', label:'9リバース', desc:'9を出すと順番が逆回りになる', type:'tog'},
+    {k:'sandstorm', label:'砂嵐', desc:'3の3枚出しは、どんな3枚出しにも勝って場を流す', type:'tog'},
+  ]},
+  {group:'進行', items:[
+    {k:'exchange', label:'カード交換', desc:'2ラウンド目から、大貧民⇄大富豪で2枚、貧民⇄富豪で1枚を交換', type:'tog'},
+    {k:'miyakoOchi', label:'都落ち', desc:'前回の大富豪が1番に上がれないと、その時点で大貧民', type:'tog'},
+    {k:'foulFinish', label:'反則上がり', desc:'ジョーカー・2（革命中は3）・8・スペ3返しで上がると大貧民', type:'tog'},
+    {k:'passLock', label:'パスしたら流れるまで出せない', desc:'一度パスすると、その場が流れるまで参加できない', type:'tog'},
+    {k:'starter', label:'最初の親', desc:'2ラウンド目以降の最初の親', type:'seg', opts:[['dia3','◆3を持つ人'],['loser','前回の大貧民']]},
+  ]},
+  {group:'遊びやすさ', items:[
+    {k:'autoPass', label:'自動パス', desc:'出せるカードがないときは自動でパスする', type:'tog'},
+    {k:'showPlayable', label:'出せるカードを明るく表示', desc:'出せないカードを暗くする', type:'tog'},
+  ]},
+];
+const KEY='daifugo-settings-v1';
+function loadSettings(){ try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if (s && typeof s==='object') return {...DEFAULTS, ...s}; }catch(e){} return {...DEFAULTS}; }
+function saveSettings(){ try{ localStorage.setItem(KEY, JSON.stringify(settings)); }catch(e){} }
+let settings = loadSettings();
+
+function renderSettings(){
+  const html = SPEC.map(g => `<section class="group"><h2>${g.group}</h2>${g.items.map(it => {
+    const off = it.dep && !settings[it.dep];
+    const ctl = it.type==='tog'
+      ? `<button type="button" class="sw" role="switch" id="set-${it.k}" aria-checked="${!!settings[it.k]}" data-k="${it.k}" aria-label="${it.label}"></button>`
+      : `<div class="seg" role="group" aria-label="${it.label}">${it.opts.map(([v,l]) => `<button type="button" id="set-${it.k}-${v}" data-k="${it.k}" data-v="${v}" aria-pressed="${settings[it.k]===v}">${l}</button>`).join('')}</div>`;
+    return `<div class="row ${off?'off':''}"><div class="lb"><b>${it.label}</b>${it.desc?`<small>${it.desc}</small>`:''}</div>${ctl}</div>`;
+  }).join('')}</section>`).join('');
+  $('#settings').innerHTML = html;
+}
+$('#settings').addEventListener('click', e => {
+  const b = e.target.closest('button[data-k]'); if (!b) return;
+  const k = b.dataset.k;
+  if (b.classList.contains('sw')) settings[k] = !settings[k];
+  else { const sample = SPEC.flatMap(g=>g.items).find(i=>i.k===k).opts[0][0]; settings[k] = typeof sample==='number' ? Number(b.dataset.v) : b.dataset.v; }
+  saveSettings(); renderSettings();
+});
+$('#presets').addEventListener('click', e => {
+  const b = e.target.closest('button[data-preset]'); if (!b) return;
+  const keep = {players:settings.players, rounds:settings.rounds, aiLevel:settings.aiLevel, speed:settings.speed, autoPass:settings.autoPass, showPlayable:settings.showPlayable};
+  settings = {...PRESETS[b.dataset.preset], ...keep};
+  saveSettings(); renderSettings();
+});
+$('#hero-cards').innerHTML = [{s:'S',r:3},{s:'X',r:16,joker:true},{s:'H',r:15}].map(c=>cardHTML(c,'','','div')).join('');
+
+/* ================= game state ================= */
+let G = null;
+const UI = { mode:'idle', sel:new Set(), legal:[], resolve:null, pick:null, sortMode:'str' };
+const NAMES = ['あなた','キツネ','タヌキ','フクロウ','カラス','ネコ'];
+const titlesFor = n => ({3:['大富豪','平民','大貧民'],4:['大富豪','富豪','貧民','大貧民'],5:['大富豪','富豪','平民','貧民','大貧民'],6:['大富豪','富豪','平民','平民','貧民','大貧民']})[n];
+const titleCls = t => ({'大富豪':'t-top','富豪':'t-hi','平民':'t-mid','貧民':'t-lo','大貧民':'t-lo'})[t] || 't-mid';
+const reversed = () => G.r.rev !== G.r.back;
+const activeCount = () => G.players.filter(p=>!p.done).length;
+function nextActive(from, steps){
+  const P=G.players, n=P.length; let i=from, k=0, guard=0;
+  while (k<steps && guard<200){ i=(i+G.r.dir+n)%n; if (!P[i].done) k++; guard++; }
+  return i;
+}
+function addLog(t, cls=''){ G.log.unshift({t, cls}); if (G.log.length>160) G.log.pop(); renderLog(); }
+let fxQ = [], fxTone = '';
+function stamp(text, tone){ fxQ.push(text); if (tone==='bad' || !fxTone) fxTone = tone||''; }
+function flushStamp(){
+  if (!fxQ.length) return;
+  const el=$('#stamp'); el.textContent = fxQ.join('・'); el.className='stamp '+fxTone;
+  void el.offsetWidth; el.classList.add('show');
+  fxQ=[]; fxTone='';
+}
+
+/* ================= moves ================= */
+function combos(arr,k){ const res=[]; const rec=(i,cur)=>{ if(cur.length===k){res.push(cur.slice());return;} for(let x=i;x<arr.length;x++){cur.push(arr[x]);rec(x+1,cur);cur.pop();} }; rec(0,[]); return res; }
+function mkMove(type, cards, extra={}){
+  const nat = cards.filter(c=>!c.joker);
+  const m = {type, cards, count:cards.length, jokers:cards.length-nat.length, ids:new Set(cards.map(c=>c.id)), ...extra};
+  if (type==='single') m.rank = cards[0].r;
+  if (type==='group') m.rank = nat.length ? nat[0].r : 16;
+  m.suits = nat.map(c=>c.s).sort().join('');
+  return m;
+}
+function genMoves(hand){
+  const R=G.rules, out=[];
+  const jok = hand.filter(c=>c.joker), nat = hand.filter(c=>!c.joker);
+  const byRank = {};
+  nat.forEach(c => (byRank[c.r] ||= []).push(c));
+  nat.forEach(c => out.push(mkMove('single',[c])));
+  if (jok.length) out.push(mkMove('single',[jok[0]]));
+  for (const r in byRank){
+    const cs = byRank[r];
+    for (let k=1;k<=cs.length;k++) for (const combo of combos(cs,k)) for (let j=0;j<=jok.length;j++){
+      if (k+j<2) continue;
+      out.push(mkMove('group', combo.concat(jok.slice(0,j))));
+    }
+  }
+  if (jok.length>=2) out.push(mkMove('group', jok.slice(0,2)));
+  if (R.stairs){
+    for (const s of SUITS){
+      const have={}; nat.forEach(c=>{ if (c.s===s) have[c.r]=c; });
+      for (let start=3; start<=15; start++){
+        const used=[]; let jUsed=0, natCount=0;
+        for (let rr=start; rr<=15; rr++){
+          if (have[rr]){ used.push(have[rr]); natCount++; }
+          else if (jUsed<jok.length){ used.push(jok[jUsed]); jUsed++; }
+          else break;
+          const L=rr-start+1;
+          if (L>=R.stairsMin && natCount>=1) out.push(mkMove('stairs', used.slice(), {suit:s, low:start, high:rr}));
+        }
+      }
+    }
+  }
+  return out;
+}
+const isSand = m => m.type==='group' && m.count===3 && m.jokers===0 && m.rank===3;
+function fitsLock(m, lock){
+  const need = lock.split('');
+  for (const s of m.suits){ const i=need.indexOf(s); if (i<0) return false; need.splice(i,1); }
+  return true;
+}
+function canPlay(m){
+  const r=G.r, R=G.rules, f=r.field;
+  if (!f) return true;
+  if (R.sandstorm && isSand(m) && f.type==='group' && f.count===3) return true;
+  if (m.type!==f.type || m.count!==f.count) return false;
+  if (r.lock && !fitsLock(m, r.lock)) return false;
+  const rev = reversed();
+  if (m.type==='single'){
+    if (f.rank===16) return R.spade3 && m.rank===3 && m.cards[0].s==='S';
+    if (m.rank===16) return true;
+    return val(m.rank,rev) > val(f.rank,rev);
+  }
+  if (m.type==='group'){
+    if (f.rank===16) return false;
+    if (m.rank===16) return true;
+    return val(m.rank,rev) > val(f.rank,rev);
+  }
+  return rev ? m.low < f.low : m.low > f.low;
+}
+const causesRev = m => G.rules.revolution && ((m.type==='group' && m.count>=4) || (m.type==='stairs' && G.rules.stairsRev && m.count>=G.rules.stairsRev));
+function isFoulMove(m, rev, prev){
+  const R=G.rules; if (!R.foulFinish) return false;
+  if (m.jokers>0) return true;
+  const top = rev ? 3 : 15;
+  for (const c of m.cards){ if (c.r===top) return true; if (R.eightCut && c.r===8) return true; }
+  if (R.spade3 && prev && prev.type==='single' && prev.rank===16 && m.type==='single' && m.rank===3) return true;
+  return false;
+}
+const isFoulCard = (c, rev) => G.rules.foulFinish && (c.joker || c.r===(rev?3:15) || (G.rules.eightCut && c.r===8));
+function describe(m){
+  const cs = m.cards.map(cname).join(' ');
+  return m.type==='stairs' ? `${cs}（階段）` : cs;
+}
+const moveKey = (m, rev) => m.type==='stairs' ? (rev ? -m.low : m.low) : val(m.rank, rev);
+
+/* ================= AI ================= */
+function makeCtx(p){
+  const r=G.r, pl=G.players[p];
+  const own = new Set(pl.hand.map(c=>c.id));
+  const cnt = {}; pl.hand.forEach(c=>{ if (!c.joker) cnt[c.r]=(cnt[c.r]||0)+1; });
+  const others = G.players.filter(q=>q.i!==p && !q.done);
+  return { p, hand:pl.hand, rev:reversed(), cnt,
+    unseen: G.deckAll.filter(c=>!r.seen.has(c.id) && !own.has(c.id)),
+    minOpp: others.length ? Math.min(...others.map(q=>q.hand.length)) : 99 };
+}
+const avgStr = (cards, rev) => cards.length ? cards.reduce((s,c)=>s+str01(c,rev),0)/cards.length : 0;
+function estimateTurns(cards){ const s=new Set(cards.filter(c=>!c.joker).map(c=>c.r)); return s.size; }
+function unbeatable(ctx, m){
+  const R=G.rules, rev=ctx.rev;
+  if (R.eightCut && m.cards.some(c=>!c.joker && c.r===8)) return true;
+  if (m.type==='stairs') return false;
+  const un=ctx.unseen, uj=un.filter(c=>c.joker).length, n=m.count;
+  if (m.rank===16){ if (n===1) return !(R.spade3 && un.some(c=>c.s==='S'&&c.r===3)); return true; }
+  if (n===1 && uj>0) return false;
+  if (n>=2 && uj>=n) return false;
+  const counts={}; un.forEach(c=>{ if(!c.joker) counts[c.r]=(counts[c.r]||0)+1; });
+  for (let rr=3; rr<=15; rr++){
+    const k=counts[rr]||0;
+    if (k>=1 && val(rr,rev)>val(m.rank,rev) && k+uj>=n) return false;
+  }
+  return true;
+}
+function scoreMove(ctx, m, level){
+  const r=G.r, R=G.rules, lead=!r.field, rev=ctx.rev;
+  const after = ctx.hand.filter(c=>!m.ids.has(c.id));
+  if (!after.length) return isFoulMove(m, rev, r.field) ? -60 : 100;
+  let s = 0;
+  const st = avgStr(m.cards, rev);
+  s -= st*3;
+  s += m.count*0.8;
+  const used = {}; m.cards.forEach(c=>{ if(!c.joker) used[c.r]=(used[c.r]||0)+1; });
+  for (const k in used) if (used[k] < ctx.cnt[k]) s -= m.type==='stairs' ? 0.6 : 1.2;
+  if (m.jokers) s -= after.length>3 ? 2.6*m.jokers : 0.4*m.jokers;
+  const has8 = R.eightCut && m.cards.some(c=>!c.joker && c.r===8);
+  if (has8) s += lead ? 0.7 : 1.1;
+  if (causesRev(m)){
+    const now = avgStr(after, r.rev), flip = avgStr(after, !r.rev);
+    s += (flip-now)*(level==='hard'?10:7);
+  }
+  if (R.foulFinish && after.every(c=>isFoulCard(c, rev))) s -= 4.5;
+  const turns = estimateTurns(after);
+  if (level==='hard'){
+    s -= turns*0.7;
+    const ub = unbeatable(ctx, m);
+    if (ub){ if (lead && turns<=1) s += 6; else if (!lead) s += 1.2; else s += 0.3; }
+    if (!lead && st>0.72 && after.length>6 && !ub) s -= 2.6;
+    if (ctx.minOpp<=2 && !lead) s += st*2.2;
+  } else {
+    s -= turns*0.3;
+    if (!lead && st>0.8 && after.length>5) s -= 2;
+  }
+  return s;
+}
+function scorePass(ctx, level){
+  let s = -1.6 - estimateTurns(ctx.hand)*(level==='hard'?0.7:0.3);
+  if (ctx.hand.length<=3) s -= 2.5;
+  if (ctx.minOpp<=2) s -= 2;
+  if (level==='hard' && ctx.hand.length>8) s += 0.5;
+  return s;
+}
+function aiChoose(p, legal, level, noisy){
+  const r=G.r, lead=!r.field;
+  if (!legal.length) return {pass:true};
+  const rev=reversed(), pl=G.players[p];
+  if (level==='easy'){
+    const fin = legal.find(m=>m.count===pl.hand.length && !isFoulMove(m,rev,r.field));
+    if (fin) return {move:fin};
+    if (!lead && Math.random()<0.1) return {pass:true};
+    const sorted = legal.slice().sort((a,b)=>avgStr(a.cards,rev)-avgStr(b.cards,rev));
+    const pool = sorted.slice(0, Math.max(1, Math.ceil(sorted.length*0.5)));
+    return {move: pool[Math.floor(Math.random()*pool.length)]};
+  }
+  const ctx = makeCtx(p);
+  let best=null, bs=-Infinity;
+  for (const m of legal){
+    const s = scoreMove(ctx, m, level) + (noisy ? Math.random()*(level==='hard'?0.15:0.5) : 0);
+    if (s>bs){ bs=s; best=m; }
+  }
+  if (!lead && scorePass(ctx, level) > bs) return {pass:true};
+  return {move:best};
+}
+function weakestCards(hand, k, rev){
+  const cnt={}; hand.forEach(c=>{ if(!c.joker) cnt[c.r]=(cnt[c.r]||0)+1; });
+  const cost = c => c.joker ? 999 : val(c.r,rev) + (cnt[c.r]>1?3:0) + (G.rules.eightCut && c.r===8 ? 6 : 0);
+  return hand.slice().sort((a,b)=>cost(a)-cost(b)).slice(0,k);
+}
+const strongestCards = (hand, k) => hand.slice().sort((a,b)=>val(b.r,false)-val(a.r,false) || SUIT_ORDER[a.s]-SUIT_ORDER[b.s]).slice(0,k);
+
+/* ================= motion helpers ================= */
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE = 'cubic-bezier(.2,.75,.25,1)';
+const handEls = new Map();
+let seatEls = [];
+let lastSorted = [];
+const ctr = r => ({x:r.left+r.width/2, y:r.top+r.height/2});
+function handCardW(){ const el=$('#hand .card'); return el ? el.offsetWidth : 62; }
+function seatRect(i, w=30){
+  if (i===0){ const r=$('#hand').getBoundingClientRect(), cw=handCardW(); return {left:r.left+r.width/2-cw/2, top:r.top+30, width:cw, height:cw*1.42}; }
+  const a = seatEls[i].querySelector('.av').getBoundingClientRect();
+  return {left:a.left+a.width/2-w/2, top:a.top+a.height/2-w*.71, width:w, height:w*1.42};
+}
+function centerRect(w=40){ const r=$('#field-wrap').getBoundingClientRect(); return {left:r.left+r.width/2-w/2, top:r.top+r.height*.52-w*.71, width:w, height:w*1.42}; }
+function flipFrom(el, from, {base='', dur=380, delay=0, fade=false}={}){
+  if (RM || !from || !el.isConnected) return Promise.resolve();
+  const to = el.getBoundingClientRect(); if (!to.width) return Promise.resolve();
+  const a=ctr(from), b=ctr(to), s=from.width/(el.offsetWidth||to.width);
+  const anim = el.animate([
+    {transform:`translate(${a.x-b.x}px,${a.y-b.y}px) ${base} scale(${s})`, opacity:fade?0:1},
+    {transform:base||'none', opacity:1}
+  ], {duration:dur, delay, easing:EASE, fill:'backwards'});
+  return anim.finished.catch(()=>{});
+}
+function flyClone(card, from, to, {face=true, dur=440, delay=0, fadeOut=false}={}){
+  if (RM || !from || !to) return Promise.resolve();
+  const h=document.createElement('div');
+  h.innerHTML = face ? cardHTML(card,'','','div') : '<div class="card cback"></div>';
+  const el=h.firstElementChild;
+  el.style.left=to.left+'px'; el.style.top=to.top+'px'; el.style.setProperty('--cw', to.width+'px');
+  $('#fx').appendChild(el);
+  const a=ctr(from), b=ctr(to), s=from.width/to.width;
+  const anim = el.animate([
+    {transform:`translate(${a.x-b.x}px,${a.y-b.y}px) scale(${s})`, opacity:1},
+    {transform:'none', opacity:fadeOut?0:1}
+  ], {duration:dur, delay, easing:EASE, fill:'both'});
+  return anim.finished.then(()=>el.remove(), ()=>el.remove());
+}
+function captureHandRects(cards){ const o={}; cards.forEach(c=>{ const el=handEls.get(c.id); if (el) o[c.id]=el.getBoundingClientRect(); }); return o; }
+async function animTransfer(cards, fromP, toP, srcRects){
+  await Promise.all(cards.map((c,i)=>{
+    const from = (srcRects && srcRects[c.id]) || seatRect(fromP, 30);
+    if (toP===0){ const el=handEls.get(c.id); return el ? flipFrom(el, from, {base:el.style.transform, dur:480, delay:i*80}) : null; }
+    const to = toP==='discard' ? centerRect(48) : seatRect(toP, 30);
+    return flyClone(c, from, to, {face: fromP===0 || toP==='discard', dur:480, delay:i*80, fadeOut: toP==='discard'});
+  }));
+}
+async function animClear(){
+  const ts=[...$('#field').querySelectorAll('.trick')];
+  if (!ts.length) return;
+  if (!RM) await Promise.all(ts.map((t,i)=>t.animate([
+    {transform:t.style.transform, opacity:1},
+    {transform:t.style.transform+' translate(130%,-30%) rotate(16deg)', opacity:0}
+  ], {duration:360, delay:i*40, easing:'cubic-bezier(.55,0,.8,.2)', fill:'forwards'}).finished.catch(()=>{})));
+  ts.forEach(t=>t.remove());
+}
+async function animDeal(fresh){
+  if (RM) return;
+  const from = centerRect(34);
+  const tasks = fresh.map((el,i)=>flipFrom(el, from, {base:el.style.transform, dur:420, delay:i*38, fade:true}));
+  for (let k=1;k<G.players.length;k++) for (let j=0;j<3;j++) tasks.push(flyClone(null, from, seatRect(k,26), {face:false, dur:380, delay:j*140+k*40}));
+  await Promise.all(tasks);
+}
+
+/* ================= flow ================= */
+function speedMs(){
+  if (G.players[0].done) return 200;
+  return {fast:260, normal:620, slow:1100}[G.rules.speed] || 620;
+}
+function resetBoard(){
+  handEls.forEach(el=>el.remove()); handEls.clear(); lastSorted=[];
+  $('#field').innerHTML=''; $('#fx').innerHTML=''; stateHTML=''; meHTML='';
+}
+function startGame(){
+  saveSettings();
+  const n = settings.players;
+  G = { id:Math.random(), rules:{...settings}, round:0, prevOrder:null, log:[],
+    players: Array.from({length:n}, (_,i)=>({i, name:NAMES[i], human:i===0, hand:[], done:false, passed:false, total:0, title:'', lastPts:0, foul:false, ochi:false})) };
+  UI.mode='idle'; UI.sel.clear();
+  $('#title-screen').hidden = true; $('#game').hidden = false; $('#modal').hidden = true;
+  resetBoard(); buildSeats(); renderLog();
+  runGame(G.id);
+}
+function quitToTitle(){
+  if (G) G.id = Math.random();
+  UI.mode='idle'; UI.resolve=null; UI.pick=null;
+  $('#modal').hidden = true; $('#game').hidden = true; $('#title-screen').hidden = false;
+  $('#log-wrap').classList.remove('open'); $('#fx').innerHTML='';
+  renderSettings(); window.scrollTo(0,0);
+}
+async function runGame(gid){
+  while (true){
+    G.round++;
+    await runRound(gid);
+    if (!G || gid!==G.id) return;
+    const last = G.rules.rounds && G.round>=G.rules.rounds;
+    const go = await showResult(last, gid);
+    if (!go || gid!==G.id) return;
+  }
+}
+async function runRound(gid){
+  const R=G.rules, P=G.players, n=P.length;
+  await animClear();
+  resetBoard();
+  const deck = shuffle(makeDeck(R.jokers));
+  G.deckAll = deck.slice();
+  P.forEach(p=>Object.assign(p,{hand:[], done:false, passed:false, foul:false, ochi:false}));
+  let d = Math.floor(Math.random()*n);
+  deck.forEach(c=>{ P[d].hand.push(c); d=(d+1)%n; });
+  G.r = { field:null, pile:[], serial:0, lastPlayer:-1, passCount:0, lock:null, rev:false, back:false, dir:1, cur:-1, order:[], bottom:[], seen:new Set(), msg:'カードを配っています' };
+  addLog(`第${G.round}ラウンド`, 'sep');
+  const {fresh} = render();
+  await animDeal(fresh); if (gid!==G.id) return;
+  G.r.msg = '';
+  if (G.round>1 && R.exchange && G.prevOrder){ await doExchange(gid); if (gid!==G.id) return; }
+  let st;
+  if (G.round===1 || R.starter==='dia3' || !G.prevOrder){
+    st = P.findIndex(p=>p.hand.some(c=>c.s==='D'&&c.r===3)); if (st<0) st=0;
+    addLog(`◆3を持つ${P[st].name}が親`, 'muted');
+  } else { st = G.prevOrder[n-1]; addLog(`前回の大貧民、${P[st].name}が親`, 'muted'); }
+  const r = G.r; r.cur = st;
+
+  while (activeCount()>1){
+    if (gid!==G.id) return;
+    const p = r.cur, pl = P[p];
+    if (r.field){
+      const lp = P[r.lastPlayer];
+      if ((r.lastPlayer===p && !lp.done) || (lp.done && r.passCount>=activeCount())){
+        await clearField(`全員パスで場が流れた。${pl.name}が親`);
+        if (gid!==G.id) return;
+      }
+    }
+    if (!pl.human) r.msg = '';
+    render();
+    const act = pl.human ? await humanTurn(p) : await aiTurn(p, gid);
+    if (!act || gid!==G.id) return;
+    if (act.pass){
+      r.passCount++; pl.passed=true;
+      addLog(`${pl.name}：パス`, 'muted');
+      r.cur = nextActive(p,1);
+      continue;
+    }
+    const res = await applyMove(p, act.move, gid);
+    if (!res || gid!==G.id) return;
+    flushStamp();
+    if (activeCount()<=1) break;
+    if (res.cut){
+      r.cur = -2; render();
+      await sleep(RM?300:620); if (gid!==G.id) return;
+      await clearField(); if (gid!==G.id) return;
+      r.cur = P[p].done ? nextActive(p,1) : p;
+      addLog(`場が流れた。${P[r.cur].name}が親`, 'flow');
+    } else r.cur = nextActive(p, 1+res.skip);
+    render();
+  }
+  P.filter(q=>!q.done).forEach(q=>{ q.done=true; r.order.push(q.i); });
+  const final = r.order.concat(r.bottom.slice().reverse());
+  const T = titlesFor(n);
+  final.forEach((pi,idx)=>{ const pts=n-1-idx; P[pi].lastPts=pts; P[pi].total+=pts; P[pi].title=T[idx]; P[pi].lastPlace=idx; });
+  G.prevOrder = final; G.lastOrder = final;
+  r.cur = -1; r.msg = 'ラウンド終了'; UI.mode='idle';
+  render();
+  await sleep(1000);
+}
+async function clearField(reason){
+  await animClear();
+  const r=G.r;
+  r.field=null; r.pile=[]; r.lock=null; r.back=false; r.passCount=0;
+  G.players.forEach(p=>p.passed=false);
+  if (reason) addLog(reason, 'flow');
+  render();
+}
+async function aiTurn(p, gid){
+  render();
+  await sleep(speedMs());
+  if (gid!==G.id) return null;
+  const pl=G.players[p];
+  if (G.rules.passLock && pl.passed && G.r.field) return {pass:true};
+  const legal = genMoves(pl.hand).filter(canPlay);
+  return aiChoose(p, legal, G.rules.aiLevel, true);
+}
+function humanTurn(p){
+  return new Promise(res=>{
+    const pl=G.players[p], r=G.r, R=G.rules;
+    UI.legal = genMoves(pl.hand).filter(canPlay);
+    UI.sel.clear();
+    if (r.field && ((R.passLock && pl.passed) || (R.autoPass && !UI.legal.length))){
+      r.msg = (R.passLock && pl.passed) ? 'パス済みなので、場が流れるまで待ちます' : '出せるカードがないので自動でパスします';
+      UI.mode='wait'; render();
+      setTimeout(()=>{ UI.mode='idle'; res({pass:true}); }, 950);
+      return;
+    }
+    r.msg = r.field ? '' : 'あなたが親です。好きな組み合わせを出せます';
+    UI.mode='play'; UI.resolve=res;
+    render();
+  });
+}
+function humanPick(n, msg, exact){
+  return new Promise(res=>{ UI.mode='pick'; UI.sel.clear(); UI.pick={n, msg, exact, resolve:res}; render(); });
+}
+async function pickCards(p, k, rev){
+  if (G.players[p].human) return await humanPick(k, null, false);
+  await sleep(Math.min(500, speedMs()));
+  return weakestCards(G.players[p].hand, k, rev);
+}
+async function applyMove(p, m, gid){
+  const r=G.r, R=G.rules, P=G.players, pl=P[p];
+  const prev = r.field, preRev = reversed();
+  const src = {};
+  if (pl.human) Object.assign(src, captureHandRects(m.cards));
+  else { const sr=seatRect(p, 34); m.cards.forEach(c=>src[c.id]=sr); }
+  pl.hand = pl.hand.filter(c=>!m.ids.has(c.id));
+  m.cards.forEach(c=>r.seen.add(c.id));
+  r.field = m; r.pile.push({p, m, s:++r.serial}); if (r.pile.length>4) r.pile.shift();
+  r.lastPlayer = p; r.passCount = 0;
+  P.forEach(q=>q.passed=false);
+  addLog(`${pl.name}：${describe(m)}`, pl.human?'me':'');
+  const {trick} = render();
+  if (trick) await Promise.all([...trick.querySelectorAll('.card')].map((el,i)=>flipFrom(el, src[+el.dataset.id], {dur:pl.human?360:420, delay:i*45})));
+  if (gid!==G.id) return null;
+
+  const nat = m.cards.filter(c=>!c.joker);
+  const cnt = rk => nat.filter(c=>c.r===rk).length;
+  const fx=[]; let cut=false, skip=0;
+  if (R.shibari && !r.lock && prev && prev.type===m.type && prev.jokers===0 && m.jokers===0 && prev.suits===m.suits){ r.lock=m.suits; fx.push(`しばり ${[...new Set(m.suits)].map(s=>SYM[s]).join('')}`); }
+  if (R.sandstorm && isSand(m)){ cut=true; fx.push('砂嵐'); }
+  if (R.spade3 && prev && prev.type==='single' && prev.rank===16 && m.type==='single' && m.rank===3 && m.cards[0].s==='S'){ cut=true; fx.push('スペ3返し'); }
+  if (causesRev(m)){ r.rev=!r.rev; fx.push(r.rev?'革命':'革命返し'); }
+  if (R.elevenBack && cnt(11)>0 && !r.back){ r.back=true; fx.push('11バック'); }
+  if (R.nineReverse && cnt(9)>0){ r.dir*=-1; fx.push('リバース'); }
+  if (R.eightCut && cnt(8)>0){ cut=true; fx.push('8切り'); }
+  if (R.fiveSkip && cnt(5)>0 && !cut){ skip=cnt(5); fx.push(`${skip}人スキップ`); }
+  fx.forEach(t=>stamp(t));
+  if (fx.length) addLog(fx.join('・')+'！', 'fx');
+
+  if (!pl.hand.length){
+    finish(p, isFoulMove(m, preRev, prev));
+    flushStamp(); render();
+  } else {
+    flushStamp(); render();
+    const rev = reversed();
+    if (R.sevenPass && cnt(7)>0 && activeCount()>1){
+      const tgt = nextActive(p,1), k=Math.min(cnt(7), pl.hand.length);
+      if (pl.human) UI.pickMsg = `7渡し：${P[tgt].name}に渡すカードを${k}枚まで選んでください`;
+      const cards = await pickCards(p, k, rev); if (gid!==G.id) return null;
+      if (cards.length){
+        const rects = pl.human ? captureHandRects(cards) : null;
+        const ids=new Set(cards.map(c=>c.id));
+        pl.hand = pl.hand.filter(c=>!ids.has(c.id)); P[tgt].hand.push(...cards);
+        const shown = pl.human || P[tgt].human;
+        addLog(`${pl.name} → ${P[tgt].name}：${shown ? cards.map(cname).join(' ') : cards.length+'枚'}を渡した`, shown?'me':'');
+        render();
+        await animTransfer(cards, p, tgt, rects); if (gid!==G.id) return null;
+      }
+    }
+    if (R.tenDiscard && cnt(10)>0 && pl.hand.length){
+      const k=Math.min(cnt(10), pl.hand.length);
+      if (pl.human) UI.pickMsg = `10捨て：捨てるカードを${k}枚まで選んでください`;
+      const cards = await pickCards(p, k, rev); if (gid!==G.id) return null;
+      if (cards.length){
+        const rects = pl.human ? captureHandRects(cards) : null;
+        const ids=new Set(cards.map(c=>c.id));
+        pl.hand = pl.hand.filter(c=>!ids.has(c.id)); cards.forEach(c=>r.seen.add(c.id));
+        addLog(`${pl.name}：${cards.map(cname).join(' ')}を捨てた`, pl.human?'me':'');
+        render();
+        await animTransfer(cards, p, 'discard', rects); if (gid!==G.id) return null;
+      }
+    }
+    if (!pl.hand.length){ finish(p, false); flushStamp(); render(); }
+  }
+  return {cut, skip};
+}
+function finish(p, foul){
+  const r=G.r, P=G.players, R=G.rules, pl=P[p];
+  pl.done = true;
+  if (foul){
+    pl.foul = true; r.bottom.push(p);
+    addLog(`${pl.name}は反則上がりで大貧民に`, 'bad'); stamp('反則上がり','bad');
+    return;
+  }
+  r.order.push(p);
+  addLog(`${pl.name}が${r.order.length}番目に上がり`, 'good');
+  if (pl.human) stamp(`${r.order.length}位で上がり`,'good');
+  if (R.miyakoOchi && r.order.length===1 && G.prevOrder && G.round>1){
+    const k = G.prevOrder[0];
+    if (k!==p && !P[k].done){
+      P[k].done=true; P[k].ochi=true; P[k].hand.forEach(c=>r.seen.add(c.id)); P[k].hand=[]; r.bottom.push(k);
+      addLog(`${P[k].name}は都落ちで大貧民に`, 'bad'); stamp('都落ち','bad');
+    }
+  }
+}
+async function doExchange(gid){
+  const P=G.players, n=P.length, o=G.prevOrder, r=G.r;
+  const pairs=[[o[0],o[n-1],2]]; if (n>=4) pairs.push([o[1],o[n-2],1]);
+  for (const [hi, lo, k] of pairs){
+    const vis = P[lo].human || P[hi].human;
+    r.msg = `カード交換：${P[lo].title}の${P[lo].name} → ${P[hi].title}の${P[hi].name}`; render();
+    await sleep(RM?200:450); if (gid!==G.id) return;
+    const give = strongestCards(P[lo].hand, k);
+    const gRects = P[lo].human ? captureHandRects(give) : null;
+    const gIds = new Set(give.map(c=>c.id));
+    P[lo].hand = P[lo].hand.filter(c=>!gIds.has(c.id)); P[hi].hand.push(...give);
+    addLog(`交換：${P[lo].name} → ${P[hi].name}　${vis ? give.map(cname).join(' ') : k+'枚'}`, vis?'me':'muted');
+    render();
+    await animTransfer(give, lo, hi, gRects); if (gid!==G.id) return;
+    let back;
+    if (P[hi].human){
+      UI.pickMsg = `${P[lo].name}から ${give.map(cname).join(' ')} が届きました。返すカードを${k}枚選んでください`;
+      back = await humanPick(k, null, true); if (gid!==G.id) return;
+    } else {
+      await sleep(speedMs()); if (gid!==G.id) return;
+      back = weakestCards(P[hi].hand, k, false);
+    }
+    const bRects = P[hi].human ? captureHandRects(back) : null;
+    const bIds = new Set(back.map(c=>c.id));
+    P[hi].hand = P[hi].hand.filter(c=>!bIds.has(c.id)); P[lo].hand.push(...back);
+    addLog(`交換：${P[hi].name} → ${P[lo].name}　${vis ? back.map(cname).join(' ') : k+'枚'}`, vis?'me':'muted');
+    if (P[lo].human) r.msg = `${give.map(cname).join(' ')} を渡して、${back.map(cname).join(' ')} が届きました`;
+    render();
+    await animTransfer(back, hi, lo, bRects); if (gid!==G.id) return;
+    await sleep(P[lo].human ? 900 : 150); if (gid!==G.id) return;
+  }
+  r.msg='';
+}
+
+/* ================= input ================= */
+function matchSel(){
+  if (!UI.sel.size) return null;
+  const cand = UI.legal.filter(m=>m.count===UI.sel.size && m.cards.every(c=>UI.sel.has(c.id)));
+  if (!cand.length) return null;
+  const rev = reversed();
+  cand.sort((a,b)=>moveKey(b,rev)-moveKey(a,rev));
+  return cand[0];
+}
+function setSel(id, on){
+  if (on){
+    if (UI.mode==='pick' && UI.sel.size>=UI.pick.n){ if (UI.pick.n===1) UI.sel.clear(); else return; }
+    UI.sel.add(id);
+  } else UI.sel.delete(id);
+}
+function doPlay(){
+  if (UI.mode!=='play') return;
+  const m = matchSel(); if (!m) return;
+  const res = UI.resolve; UI.mode='idle'; UI.resolve=null; UI.sel.clear();
+  res({move:m});
+}
+const handBox = $('#hand');
+let drag = null;
+handBox.addEventListener('pointerdown', e => {
+  if (UI.mode!=='play' && UI.mode!=='pick') return;
+  const el = e.target.closest('.card[data-id]'); if (!el) return;
+  const id = Number(el.dataset.id);
+  drag = {id, x0:e.clientX, y0:e.clientY, moved:false, kind:null, dy:0, swept:new Set([id]), addMode:!UI.sel.has(id)};
+  try { handBox.setPointerCapture(e.pointerId); } catch(_){}
+});
+handBox.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx=e.clientX-drag.x0, dy=e.clientY-drag.y0;
+  if (!drag.moved){
+    if (Math.hypot(dx,dy)<9) return;
+    drag.moved = true;
+    drag.kind = (dy<0 && Math.abs(dy)>Math.abs(dx)*0.8) ? 'lift' : 'sweep';
+    if (drag.kind==='lift'){ if (!UI.sel.has(drag.id)) setSel(drag.id, true); }
+    else setSel(drag.id, drag.addMode);
+    renderMe();
+  }
+  if (drag.kind==='lift'){ drag.dy = Math.min(0, dy); layoutHand(undefined, drag.dy); }
+  else {
+    const t = document.elementFromPoint(e.clientX, e.clientY);
+    const c = t && t.closest ? t.closest('#hand .card[data-id]') : null;
+    if (c){ const id=Number(c.dataset.id); if (!drag.swept.has(id)){ drag.swept.add(id); setSel(id, drag.addMode); renderMe(); } }
+  }
+});
+function endDrag(cancel){
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (!d.moved){ if (!cancel){ setSel(d.id, !UI.sel.has(d.id)); renderMe(); } return; }
+  if (d.kind==='lift' && !cancel && d.dy < -48){
+    if (UI.mode==='play' && matchSel()){ doPlay(); return; }
+    if (UI.mode==='pick' && pickOk()){ doConfirm(); return; }
+  }
+  layoutHand(undefined, 0); renderMe();
+}
+handBox.addEventListener('pointerup', () => endDrag(false));
+handBox.addEventListener('pointercancel', () => endDrag(true));
+handBox.addEventListener('keydown', e => {
+  const el = e.target.closest('.card[data-id]'); if (!el) return;
+  if (e.key==='Enter' || e.key===' '){ e.preventDefault(); if (UI.mode==='play'||UI.mode==='pick'){ const id=Number(el.dataset.id); setSel(id, !UI.sel.has(id)); renderMe(); } }
+});
+$('#btn-play').addEventListener('click', doPlay);
+$('#btn-pass').addEventListener('click', () => {
+  if (UI.mode!=='play' || !G.r.field) return;
+  const res = UI.resolve; UI.mode='idle'; UI.resolve=null; UI.sel.clear();
+  res({pass:true});
+});
+$('#btn-hint').addEventListener('click', () => {
+  if (UI.mode!=='play') return;
+  const a = aiChoose(0, UI.legal, 'normal', false);
+  UI.sel.clear();
+  if (a.pass) G.r.msg = 'ヒント：ここはパスがよさそうです';
+  else { a.move.cards.forEach(c=>UI.sel.add(c.id)); G.r.msg = ''; }
+  renderMe();
+});
+function pickOk(){ const pk=UI.pick; return !!pk && UI.sel.size>0 && (pk.exact ? UI.sel.size===pk.n : UI.sel.size<=pk.n); }
+async function doConfirm(){
+  if (UI.mode!=='pick') return;
+  const pk = UI.pick; if (pk.exact && UI.sel.size!==pk.n) return;
+  const cards = G.players[0].hand.filter(c=>UI.sel.has(c.id));
+  UI.mode='idle'; UI.pick=null; UI.pickMsg=''; UI.sel.clear();
+  pk.resolve(cards);
+}
+$('#btn-confirm').addEventListener('click', doConfirm);
+$('#btn-sort').addEventListener('click', () => { UI.sortMode = UI.sortMode==='str' ? 'suit' : 'str'; renderMe(); });
+$('#btn-start').addEventListener('click', startGame);
+$('#btn-menu').addEventListener('click', showMenu);
+$('#btn-log').addEventListener('click', () => $('#log-wrap').classList.toggle('open'));
+$('#btn-log-close').addEventListener('click', () => $('#log-wrap').classList.remove('open'));
+$('#table').addEventListener('pointerdown', () => $('#log-wrap').classList.remove('open'));
+window.addEventListener('resize', () => { if (G && G.r) layoutHand(); });
+
+/* ================= render ================= */
+let stateHTML='', meHTML='';
+function buildSeats(){
+  const P=G.players, box=$('#seats');
+  box.style.setProperty('--n', P.length-1);
+  box.innerHTML = P.slice(1).map(q=>`<div class="seat" data-i="${q.i}"><div class="av" style="--av:var(--av${q.i})">${q.name[0]}<span class="badge">0</span></div><div class="seat-name">${q.name}</div><div class="seat-sub"></div><div class="bubble"></div></div>`).join('');
+  seatEls = [null, ...box.querySelectorAll('.seat')];
+}
+function render(){
+  if (!G || !G.r) return {};
+  const r=G.r, R=G.rules;
+  $('#round').textContent = `第${G.round}ラウンド` + (R.rounds ? ` / ${R.rounds}` : '');
+  $('#table').classList.toggle('is-rev', reversed());
+  renderSeats();
+  const trick = renderField();
+  renderState();
+  const fresh = renderMe();
+  return {trick, fresh};
+}
+function renderSeats(){
+  const r=G.r, P=G.players;
+  for (let k=1;k<P.length;k++){
+    const q=P[k], el=seatEls[k]; if (!el) continue;
+    const turn = r.cur===k && !q.done;
+    el.classList.toggle('turn', turn);
+    el.classList.toggle('done', q.done);
+    const badge = el.querySelector('.badge');
+    const bt = q.done ? (q.ochi||q.foul ? '落' : `${r.order.indexOf(k)+1}位`) : String(q.hand.length);
+    if (badge.textContent!==bt){ badge.textContent=bt; badge.classList.remove('bump'); void badge.offsetWidth; badge.classList.add('bump'); }
+    const sub = `${q.title?`<span class="ttl ${titleCls(q.title)}">${q.title}</span>`:''}<span>${q.total}pt</span>`;
+    const subEl = el.querySelector('.seat-sub'); if (subEl.dataset.h!==sub){ subEl.dataset.h=sub; subEl.innerHTML=sub; }
+    const st = q.done ? (q.ochi?'都落ち':q.foul?'反則':'あがり') : turn ? 'think' : q.passed ? 'パス' : '';
+    const b = el.querySelector('.bubble');
+    if (b.dataset.st!==st){
+      b.dataset.st=st; b.className='bubble';
+      if (st){
+        b.innerHTML = st==='think' ? '<span class="dots"><i>•</i><i>•</i><i>•</i></span>' : st;
+        void b.offsetWidth; b.classList.add('on');
+        if (st==='think') b.classList.add('think'); else if (q.done) b.classList.add('fin');
+      }
+    }
+  }
+}
+function renderField(){
+  const r=G.r, P=G.players, f=$('#field');
+  const vis = r.pile.slice(-3), keep = new Set(vis.map(e=>e.s));
+  f.querySelectorAll('.trick').forEach(t=>{ if (!keep.has(Number(t.dataset.s))) t.remove(); });
+  let added=null;
+  vis.forEach((e,idx)=>{
+    let t = f.querySelector(`.trick[data-s="${e.s}"]`);
+    if (!t){
+      t=document.createElement('div');
+      t.className='trick'+(e.m.count>=4?' tight':''); t.dataset.s=e.s;
+      const ox=(Math.random()*2-1)*16, oy=(Math.random()*2-1)*12, a=(Math.random()*2-1)*6;
+      t.style.transform=`translate(-50%,-50%) translate(${ox.toFixed(1)}px,${oy.toFixed(1)}px) rotate(${a.toFixed(1)}deg)`;
+      t.style.zIndex=e.s;
+      t.innerHTML=e.m.cards.map(c=>cardHTML(c,'',`data-id="${c.id}"`,'div')).join('');
+      f.appendChild(t); added=t;
+    }
+    t.classList.toggle('old', idx<vis.length-1);
+  });
+  const top=r.pile[r.pile.length-1];
+  $('#field-who').textContent = top ? `${P[top.p].name}${top.m.type==='stairs'?'の階段':''}` : '';
+  const lead = r.cur>=0 && P[r.cur] && !P[r.cur].done ? P[r.cur].name : '';
+  const emp = !r.pile.length ? `場は空です${lead?`<small>${lead}が親</small>`:''}` : '';
+  const ee=$('#field-empty'); if (ee.dataset.h!==emp){ ee.dataset.h=emp; ee.innerHTML=emp; }
+  return added;
+}
+function renderState(){
+  const r=G.r, R=G.rules, chips=[];
+  if (r.rev) chips.push(`<span class="chip rev">革命中</span>`);
+  if (r.back) chips.push(`<span class="chip back">11バック中</span>`);
+  if (r.lock) chips.push(`<span class="chip lock">しばり ${[...new Set(r.lock)].map(s=>SYM[s]).join('')}</span>`);
+  if (R.nineReverse && r.dir===-1) chips.push(`<span class="chip">↺ 逆回り</span>`);
+  const h=chips.join('');
+  if (h!==stateHTML){ stateHTML=h; $('#state').innerHTML=h; }
+}
+function renderMe(){
+  const r=G.r, P=G.players, R=G.rules, me=P[0];
+  const myTurn = r.cur===0 && !me.done && (UI.mode==='play' || UI.mode==='wait');
+  const place = me.done ? (me.ochi?'都落ち':me.foul?'反則上がり':`${r.order.indexOf(0)+1}位で上がり`) : '';
+  const pill = place ? `<span class="turn-pill pass">${place}</span>` : myTurn ? '<span class="turn-pill">あなたの番</span>' : UI.mode==='pick' ? '<span class="turn-pill">カードを選ぶ</span>' : me.passed ? '<span class="turn-pill pass">パス</span>' : '';
+  const info = `<span class="nm">あなた</span>${me.title?`<span class="ttl ${titleCls(me.title)}">${me.title}</span>`:''}<span class="meta">${me.hand.length}枚・${me.total}pt</span>${pill}`;
+  if (info!==meHTML){ meHTML=info; $('#me-info').innerHTML=info; }
+
+  let pr = r.msg || '';
+  if (UI.mode==='pick') pr = (UI.pickMsg || `${UI.pick.n}枚選んでください`) + (UI.sel.size ? '　<span class="tip">上にスワイプで決定</span>' : '');
+  else if (UI.mode==='play'){
+    if (UI.sel.size){
+      const m = matchSel();
+      pr = m ? `${describe(m)}　<span class="tip">上にスワイプか「出す」</span>` : `<span class="warn">その組み合わせは出せません</span>`;
+    } else if (!pr) pr = '<span class="tip">タップで選択、横になぞるとまとめて選べます</span>';
+  } else if (!pr && r.cur>0 && P[r.cur] && !P[r.cur].done) pr = `<span class="tip">${P[r.cur].name}が考えています</span>`;
+  $('#prompt').innerHTML = pr;
+
+  const fresh = renderHand();
+
+  const picking = UI.mode==='pick';
+  $('#btn-play').hidden = picking; $('#btn-pass').hidden = picking; $('#btn-hint').hidden = picking;
+  $('#btn-confirm').hidden = !picking;
+  $('#btn-play').disabled = !(UI.mode==='play' && matchSel());
+  $('#btn-pass').disabled = !(UI.mode==='play' && r.field);
+  $('#btn-hint').disabled = UI.mode!=='play';
+  $('#btn-sort').textContent = UI.sortMode==='str' ? '強さ順' : 'スート順';
+  if (picking){
+    const ok = UI.pick.exact ? UI.sel.size===UI.pick.n : UI.sel.size<=UI.pick.n;
+    $('#btn-confirm').disabled = !ok;
+    $('#btn-confirm').textContent = UI.pick.exact ? `決定（${UI.sel.size}/${UI.pick.n}）` : (UI.sel.size ? `${UI.sel.size}枚で決定` : '何もしない');
+  }
+  return fresh;
+}
+function renderHand(){
+  const r=G.r, R=G.rules, me=G.players[0], box=$('#hand');
+  const sorted = sortHand(me.hand, r.rev, UI.sortMode);
+  const ids = new Set(sorted.map(c=>c.id));
+  for (const [id,el] of handEls) if (!ids.has(id)){ el.remove(); handEls.delete(id); }
+  const playable = UI.mode==='play' && R.showPlayable && r.field ? new Set(UI.legal.flatMap(m=>m.cards.map(c=>c.id))) : null;
+  const fresh=[];
+  sorted.forEach(c=>{
+    let el = handEls.get(c.id);
+    if (!el){
+      const h=document.createElement('div');
+      h.innerHTML = cardHTML(c,'',`data-id="${c.id}" role="button" tabindex="0"`,'div');
+      el=h.firstElementChild; box.appendChild(el); handEls.set(c.id, el); fresh.push(el);
+    }
+    el.classList.toggle('sel', UI.sel.has(c.id));
+    el.classList.toggle('dim', !!(playable && !playable.has(c.id)));
+    el.setAttribute('aria-pressed', UI.sel.has(c.id));
+  });
+  box.classList.toggle('locked', UI.mode!=='play' && UI.mode!=='pick');
+  layoutHand(sorted, 0);
+  return fresh;
+}
+function layoutHand(sorted=lastSorted, dragDy=0){
+  lastSorted = sorted;
+  const box=$('#hand'), n=sorted.length; if (!n) return;
+  const W=box.clientWidth, el0=handEls.get(sorted[0].id); if (!el0) return;
+  const cw=el0.offsetWidth;
+  const ang=Math.min(2.6, 26/n), pad = n>1 ? cw*0.12 + 4 : 0;
+  const step = n>1 ? Math.min(cw*0.72, (W-cw-pad*2)/(n-1)) : 0;
+  const x0 = (W-(step*(n-1)+cw))/2, mid=(n-1)/2;
+  sorted.forEach((c,i)=>{
+    const el=handEls.get(c.id); if (!el) return;
+    const d=i-mid, sel=UI.sel.has(c.id);
+    const y = Math.min(18, d*d*0.32) + (sel ? -24 + dragDy : 0);
+    el.style.zIndex = i;
+    el.style.transition = (sel && dragDy) ? 'none' : '';
+    el.style.transform = `translate(${(x0+i*step).toFixed(1)}px,${y.toFixed(1)}px) rotate(${(d*ang).toFixed(2)}deg)`;
+  });
+}
+function renderLog(){
+  if (!G) return;
+  $('#log').innerHTML = G.log.map(l=>`<li class="${l.cls}">${l.t}</li>`).join('');
+}
+/* ================= modals ================= */
+function ruleNames(R){
+  const on=[];
+  on.push(`${R.players}人`, R.jokers?`ジョーカー${R.jokers}枚`:'ジョーカーなし', {easy:'AIよわい',normal:'AIふつう',hard:'AIつよい'}[R.aiLevel]);
+  if (R.revolution) on.push('革命');
+  if (R.stairs) on.push(`階段（${R.stairsMin}枚〜）`);
+  if (R.stairs && R.stairsRev && R.revolution) on.push(`階段革命（${R.stairsRev}枚〜）`);
+  [['eightCut','8切り'],['elevenBack','11バック'],['shibari','しばり'],['spade3','スペ3返し'],['fiveSkip','5スキップ'],['sevenPass','7渡し'],['tenDiscard','10捨て'],['nineReverse','9リバース'],['sandstorm','砂嵐'],['exchange','カード交換'],['miyakoOchi','都落ち'],['foulFinish','反則上がり'],['passLock','パス後は参加不可']].forEach(([k,l])=>{ if (R[k]) on.push(l); });
+  return on;
+}
+function openModal(html){ $('#sheet').innerHTML = html; $('#modal').hidden=false; const b=$('#sheet button'); if (b) b.focus(); }
+function closeModal(){ $('#modal').hidden=true; }
+function showMenu(){
+  if (!G) return;
+  openModal(`<h2>このゲームのルール</h2><p class="sub">ルールを変えるときは、ゲームをやめてタイトルに戻ります。</p>
+    <div class="rulechips">${ruleNames(G.rules).map(t=>`<span>${t}</span>`).join('')}</div>
+    <div class="actions"><button type="button" class="btn ghost" id="m-quit">やめてタイトルへ</button><button type="button" class="btn primary" id="m-back">ゲームに戻る</button></div>`);
+  $('#m-back').onclick = closeModal;
+  $('#m-quit').onclick = quitToTitle;
+}
+function showResult(isLast, gid){
+  return new Promise(res=>{
+    const P=G.players, n=P.length;
+    const rows = G.lastOrder.map((pi,idx)=>{ const q=P[pi];
+      const note = q.ochi?'都落ち':q.foul?'反則':'';
+      return `<tr class="${q.human?'you':''}"><td class="place">${idx+1}</td><td>${q.name}${note?` <small class="t-lo">${note}</small>`:''}</td><td><span class="ttl ${titleCls(q.title)}">${q.title}</span></td><td class="num">+${q.lastPts}</td><td class="num">${q.total}</td></tr>`; }).join('');
+    openModal(`<h2>第${G.round}ラウンドの結果</h2><p class="sub">${isLast?'これが最終ラウンドでした。':'次のラウンドは、この称号でカード交換から始まります。'}</p>
+      <table class="res"><thead><tr><th>順位</th><th>名前</th><th>称号</th><th style="text-align:right">今回</th><th style="text-align:right">合計</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="actions">${isLast
+        ? `<button type="button" class="btn primary" id="r-final">最終結果を見る</button>`
+        : `<button type="button" class="btn ghost" id="r-end">ここで終了</button><button type="button" class="btn primary" id="r-next">次のラウンドへ</button>`}</div>`);
+    const nx=$('#r-next'), en=$('#r-end'), fi=$('#r-final');
+    if (nx) nx.onclick = ()=>{ if (gid!==G.id) return; closeModal(); res(true); };
+    if (en) en.onclick = ()=>{ showFinal(); res(false); };
+    if (fi) fi.onclick = ()=>{ showFinal(); res(false); };
+  });
+}
+function showFinal(){
+  const P=G.players.slice().sort((a,b)=>b.total-a.total);
+  const topScore = P[0].total, winners = P.filter(q=>q.total===topScore);
+  const youWin = winners.some(q=>q.human);
+  const head = youWin ? (winners.length>1?'あなたも同点で優勝':'あなたの優勝です') : `${winners.map(q=>q.name).join('と')}の優勝`;
+  let place=0, prevT=null;
+  const rows = P.map((q,i)=>{ if (q.total!==prevT){ place=i+1; prevT=q.total; } return `<tr class="${q.human?'you':''}"><td class="place">${place}</td><td>${q.name}</td><td class="num">${q.total}pt</td></tr>`; }).join('');
+  openModal(`<h2>最終結果</h2><p class="sub">${G.round}ラウンドの合計ポイント</p><div class="winner">${head}</div>
+    <table class="res"><thead><tr><th>順位</th><th>名前</th><th style="text-align:right">合計</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="actions"><button type="button" class="btn ghost" id="f-title">ルールを変える</button><button type="button" class="btn primary" id="f-again">同じルールでもう一度</button></div>`);
+  $('#f-title').onclick = quitToTitle;
+  $('#f-again').onclick = ()=>{ settings = {...G.rules}; startGame(); };
+}
+
+renderSettings();
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
